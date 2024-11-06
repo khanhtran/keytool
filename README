@@ -1,0 +1,31 @@
+This describes the certification process with keytool
+NOTE: the key alias at step 1 must match with the one in step 5
+
+1. Generte a key pair
+    keytool -genkeypair -alias mykey -keyalg RSA -keystore keystore.jks
+    Output: a keystore file with PrivateKeyEntry
+    Verify: keytool -list
+
+2. Generate a request (CSR)
+    keytool -certreq -alias mykey -file myrequest.csr -keystore keystore.jks
+    Output: a request file
+
+3. Submit the csr to CA (Certificate Authority)
+    For testing purpuse, use openssl tool to certify my request
+        # Generate a private key for the CA
+        openssl genrsa -out ca.key 2048
+
+        # Create a self-signed CA certificate
+        openssl req -x509 -new -nodes -key ca.key -sha256 -days 365 -out ca.crt
+        Output: A CA certificate: ca.crt
+
+        # sign the csr with the CA certiticate
+        openssl x509 -req -in myrequest.csr -CA ca/ca.crt -CAkey ca/ca.key -CAcreateserial -out mycertificate.crt -days 365 -sha256
+        Output: A certificate: mycertificate.crt
+    Output: 
+4. Import the CA root and/or imtermediate certificates - in order
+    keytool -import -alias ca -file ca/ca.crt -keystore keystore.jks
+
+5. Import the signed certificate
+    keytool -import -alias mykey -file mycertificate.crt -keystore keystore.jks
+    The certificate is imported to the existing key alias, and the alias type is still PrivateKeyEntry
