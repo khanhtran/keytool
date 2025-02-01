@@ -1,0 +1,95 @@
+Step 1: Generate a Key Pair and CSR
+Generate a Key Pair Using keytool
+
+First, generate a private/public key pair and a Certificate Signing Request (CSR). The CSR will include information about your organization and is used to request a signed certificate from a CA.
+
+bash
+Copy
+Edit
+keytool -genkeypair \
+  -alias billing-service-key \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 365 \
+  -keystore billing-service.jks \
+  -storepass changeit \
+  -keypass changeit \
+  -dname "CN=billing-service, OU=IT, O=YourCompany, L=Hanoi, ST=HN, C=VN"
+This command creates the keystore (billing-service.jks) containing the private key and self-signed certificate.
+Alias: billing-service-key identifies the key pair in the keystore.
+Generate the CSR
+
+Next, generate the CSR to send to the CA. The CA will use this CSR to create a certificate signed by them.
+
+bash
+Copy
+Edit
+keytool -certreq \
+  -alias billing-service-key \
+  -keystore billing-service.jks \
+  -storepass changeit \
+  -file billing-service.csr
+This generates a CSR file (billing-service.csr) that includes your public key and the details you provided in the -dname field.
+🌐 Step 2: Submit the CSR to a CA
+Submit CSR to a CA
+
+Send the billing-service.csr file to your CA (e.g., Let's Encrypt, DigiCert, GlobalSign, etc.) for signing.
+The CA will verify your identity (depending on the CA and certificate type, this could involve email verification, domain validation, etc.).
+Receive Signed Certificate
+
+Once the CA verifies your identity, they will issue a signed certificate. This certificate will contain your public key, CA’s digital signature, and other details.
+
+You’ll typically receive:
+
+The signed certificate (billing-service-signed.crt).
+Optionally, CA intermediate certificates to create a certificate chain.
+The CA may provide these in different formats, such as PEM or DER.
+
+🏆 Step 3: Import the CA's Signed Certificate into the Keystore
+Once you receive the signed certificate from the CA, you can import it back into your Java keystore.
+
+Import the CA-Signed Certificate
+
+Import the signed certificate into the keystore. This step effectively replaces the self-signed certificate with the CA-signed certificate.
+
+bash
+Copy
+Edit
+keytool -importcert \
+  -alias billing-service-key \
+  -file billing-service-signed.crt \
+  -keystore billing-service.jks \
+  -storepass changeit
+This command imports the signed certificate (billing-service-signed.crt) into the keystore (billing-service.jks).
+Alias: billing-service-key should match the alias used in the CSR creation.
+Verify the Keystore
+
+Ensure the keystore contains the correct certificate and private key:
+
+bash
+Copy
+Edit
+keytool -list -keystore billing-service.jks -storepass changeit
+This should show the CA-signed certificate along with the private key.
+
+🔐 Step 4: Export the Public Certificate to Share with the IdP
+Once you have a CA-signed certificate in your keystore, you can export the public certificate to share with the Identity Provider (IdP) for token validation.
+
+bash
+Copy
+Edit
+keytool -exportcert \
+  -alias billing-service-key \
+  -file billing-service-public.cer \
+  -keystore billing-service.jks \
+  -storepass changeit \
+  -rfc
+billing-service-public.cer: This file contains the public certificate that you will upload to the IdP for verifying the JWT signature.
+🚀 Step 5: Use the Certificate with the IdP
+Once the CA-signed certificate is available, you can register the public certificate (billing-service-public.cer) with the IdP.
+The IdP will use this public certificate to verify JWTs signed by the private key.
+🔑 Summary of Key Steps:
+Generate a Key Pair & CSR using keytool.
+Submit the CSR to a CA to get a signed certificate.
+Import the CA-signed certificate back into the keystore.
+Export the public certificate for use with the IdP or other systems.
